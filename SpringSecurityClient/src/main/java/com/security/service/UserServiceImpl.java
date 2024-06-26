@@ -7,6 +7,7 @@ import com.security.model.UserModel;
 import com.security.repository.PasswordResetTokenRepository;
 import com.security.repository.UserRepository;
 import com.security.repository.VerificationTokenRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     @Autowired
@@ -85,25 +87,55 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByEmail(email);
     }
 
+//    @Override
+//    public void createPasswordResetTokenForUser(User user, String token) {
+//        PasswordResetToken passwordResetToken = new PasswordResetToken(user, token);
+//        passwordResetTokenRepository.save(passwordResetToken);
+//    }
+//
+//    @Override
+//    public String validatePasswordResetToken(String token) {
+//        PasswordResetToken passwordResetToken =
+//                passwordResetTokenRepository.findByToken(token);
+//        if (passwordResetToken == null) {
+//            return "Invalid Token";
+//        }
+//        User user = passwordResetToken.getUser();
+//        Calendar calendar = Calendar.getInstance();
+//
+//        if ((passwordResetToken.getExpirationTime().getTime() -
+//                calendar.getTime().getTime()) <= 0) {
+//            passwordResetTokenRepository.delete(passwordResetToken);
+//            return "Expired";
+//        }
+//        return "Valid";
+//    }
+//
+//    @Override
+//    public Optional<User> getUserByPasswordResetToken(String token) {
+//        return Optional.ofNullable(passwordResetTokenRepository.findByToken(token).getUser());
+//    }
+
+
     @Override
     public void createPasswordResetTokenForUser(User user, String token) {
         PasswordResetToken passwordResetToken = new PasswordResetToken(user, token);
         passwordResetTokenRepository.save(passwordResetToken);
+        log.info("Password reset token created for user {}: {}", user.getEmail(), token);
     }
 
     @Override
     public String validatePasswordResetToken(String token) {
-        PasswordResetToken passwordResetToken =
-                passwordResetTokenRepository.findByToken(token);
+        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByToken(token);
         if (passwordResetToken == null) {
+            log.info("Password reset token not found: {}", token);
             return "Invalid Token";
         }
         User user = passwordResetToken.getUser();
         Calendar calendar = Calendar.getInstance();
-
-        if ((passwordResetToken.getExpirationTime().getTime() -
-                calendar.getTime().getTime()) <= 0) {
+        if ((passwordResetToken.getExpirationTime().getTime() - calendar.getTime().getTime()) <= 0) {
             passwordResetTokenRepository.delete(passwordResetToken);
+            log.info("Password reset token expired: {}", token);
             return "Expired";
         }
         return "Valid";
@@ -111,12 +143,24 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Optional<User> getUserByPasswordResetToken(String token) {
-        return Optional.ofNullable(passwordResetTokenRepository.findByToken(token).getUser());
+        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByToken(token);
+        if (passwordResetToken == null) {
+            log.info("Password reset token not found when retrieving user: {}", token);
+            return Optional.empty();
+        }
+        log.info("Password reset token valid for user: {}", passwordResetToken.getUser().getEmail());
+        return Optional.ofNullable(passwordResetToken.getUser());
     }
+
 
     @Override
     public void changePassword(User user, String newPassword) {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    @Override
+    public boolean checkIfValidOldPassword(User user, String oldPassword) {
+        return passwordEncoder.matches(oldPassword, user.getPassword());
     }
 }

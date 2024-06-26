@@ -56,7 +56,7 @@ public class RegistrationController {
     }
 
     @PostMapping("/resetPassword")
-    public String resetPassword(@RequestBody PasswordModel passwordModel, HttpServletRequest request){
+    public String resetPassword(@RequestBody PasswordModel passwordModel, HttpServletRequest request) {
         User user = userService.findUserByEmail(passwordModel.getEmail());
 
         String url = "";
@@ -73,16 +73,32 @@ public class RegistrationController {
     public String savePassword(@RequestParam("token") String token,
                                @RequestBody PasswordModel passwordModel) {
         String result = userService.validatePasswordResetToken(token);
-        if(!result.equalsIgnoreCase("valid")) {
+        if (!result.equalsIgnoreCase("valid")) {
             return "Invalid Token";
         }
         Optional<User> user = userService.getUserByPasswordResetToken(token);
-        if(user.isPresent()) {
+        if (user.isPresent()) {
             userService.changePassword(user.get(), passwordModel.getNewPassword());
             return "Password reset successfully.";
         } else {
             return "Invalid Token";
         }
+    }
+
+    @PostMapping("/changePassword")
+    public String changePassword(@RequestBody PasswordModel passwordModel) {
+        User user = userService.findUserByEmail(passwordModel.getEmail());
+        if (!userService.checkIfValidOldPassword(user, passwordModel.getOldPassword())) {
+            return "Invalid Old Password";
+        }
+        /*
+         *  save new password functionality will implement
+         *  and message
+         */
+
+        userService.changePassword(user, passwordModel.getNewPassword());
+
+        return "Password Changed Successfully.";
     }
 
     private String passwordResetTokenMail(User user, String s, String token) {

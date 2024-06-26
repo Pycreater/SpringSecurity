@@ -1,0 +1,17 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: Oauth-authorization-server
+
+  jpa:
+#    hibernate:
+#      ddl-auto: update
+    show-sql: true
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/spring_security
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
